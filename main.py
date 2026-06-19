@@ -1,5 +1,4 @@
 import argparse
-import pprint
 
 import config
 from api import KagiSearch, OpenRouter, WikiSearch
@@ -27,10 +26,8 @@ def main():
 
     response = llm.query(results, args.query)
     msg = response["choices"][0]["message"]["content"]
-    pprint.pprint(response)
-    print(type(msg))
+    # pprint.pprint(response)
     print(msg)
-    pprint.pprint(msg)
 
 
 if __name__ == "__main__":

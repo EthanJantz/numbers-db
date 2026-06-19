@@ -41,15 +41,15 @@ class KagiSearch(APIClient):
 
         super().__init__(base_url, headers)
 
-    def query(self, query: str, results_limit: int = 10) -> dict:
+    def query(self, query: str, result_limit: int = 10) -> dict:
         if not is_valid_query(query):
             raise InvalidInput(f"Invalid input: {query}")
 
-        params = {"query": query, "extract": {"count": results_limit}}
+        params = {"query": query, "extract": {"count": result_limit}}
 
         results = self.post("/search", json=params)
 
-        return results
+        return results["data"]["search"]
 
 
 class WikiSearch(APIClient):
