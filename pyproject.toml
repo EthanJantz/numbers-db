@@ -5,7 +5,6 @@ description = "Gives the user information about numbers"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "anthropic>=0.111.0",
     "dotenv>=0.9.9",
     "pytest>=9.1.1",
     "requests>=2.34.2",

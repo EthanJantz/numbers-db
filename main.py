@@ -1,11 +1,8 @@
 import argparse
-
-import anthropic
+import pprint
 
 import config
-from search import KagiSearch, WikiSearch
-
-client = anthropic.Anthropic()
+from api import KagiSearch, OpenRouter, WikiSearch
 
 
 def main():
@@ -23,25 +20,17 @@ def main():
     else:
         search = WikiSearch()
 
+    llm = OpenRouter(config.OPENROUTER_API_KEY)
+
     results = search.query(args.query, 10)
     # pprint.pprint(results)
 
-    message = client.messages.create(
-        model="claude-haiku-4-5",
-        max_tokens=1000,
-        messages=[
-            {
-                "role": "user",
-                "content": f"""Provide a brief, concise description of the number {args.query} based on the provided data.
-                Do not reference said data or speak about the data contents in your description.
-                The description should be of the number as if it has a personality and a meaningful history -- if you must you can embellish
-                but it cannot be overemphasized how important it is to not treat the description as a summary of historical data.
-                {results}""",
-            }
-        ],
-    )
-
-    print(message.content[0].text)  # ty: ignore[unresolved-attribute]
+    response = llm.query(results, args.query)
+    msg = response["choices"][0]["message"]["content"]
+    pprint.pprint(response)
+    print(type(msg))
+    print(msg)
+    pprint.pprint(msg)
 
 
 if __name__ == "__main__":

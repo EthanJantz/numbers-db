@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 
@@ -18,7 +20,7 @@ class APIClient:
 
     def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        response = self.session.request(method, url, timeout=5, **kwargs)
+        response = self.session.request(method, url, **kwargs)
         response.raise_for_status()
 
         return response.json()
@@ -69,3 +71,35 @@ class WikiSearch(APIClient):
         results = self.get("/page", params=params)
 
         return results
+
+
+class OpenRouter(APIClient):
+    def __init__(
+        self, api_key: str, base_url: str = "https://openrouter.ai/api/v1/chat"
+    ):
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "X-OpenRouter-Title": "numbers-db",  # Optional. Site title for rankings on openrouter.ai.
+        }
+        super().__init__(base_url, headers)
+
+    def query(self, search_results: dict, query: str) -> dict:
+        message = {
+            "model": "openai/gpt-oss-20b:free",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": f"""Provide a brief, concise description of the number {query} based on the provided data.
+                    Do not reference said data or speak about the data contents in your description.
+                    The description should be of the number as if it has a personality and a meaningful history -- if you must you can embellish
+                    but it cannot be overemphasized how important it is to not treat the description as a summary of historical data.
+                    {search_results}""",
+                }
+            ],
+            "temperature": 0.0,
+            "stream": False,
+        }
+
+        response = self.post("/completions", data=json.dumps(message))
+
+        return response
