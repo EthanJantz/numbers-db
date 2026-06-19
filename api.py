@@ -9,7 +9,7 @@ class InvalidInput(Exception):
 
 
 def is_valid_query(query: str) -> bool:
-    return not any(s.isalpha() for s in query)
+    return all(s.isdigit() for s in query)
 
 
 class APIClient:
