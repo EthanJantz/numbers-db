@@ -39,7 +39,7 @@ class KagiSearch(APIClient):
 
         super().__init__(base_url, headers)
 
-    def query(self, query: str, results_limit: int = 10):
+    def query(self, query: str, results_limit: int = 10) -> dict:
         if not is_valid_query(query):
             raise InvalidInput(f"Invalid input: {query}")
 
@@ -60,7 +60,7 @@ class WikiSearch(APIClient):
         }
         super().__init__(base_url, headers)
 
-    def query(self, query: str, result_limit: int = 10):
+    def query(self, query: str, result_limit: int = 10) -> dict:
         if not is_valid_query(query):
             raise InvalidInput(f"Invalid input: {query}")
 
