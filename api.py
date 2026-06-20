@@ -8,10 +8,6 @@ class InvalidInput(Exception):
         super().__init__(message)
 
 
-def is_valid_query(query: str) -> bool:
-    return all(s.isdigit() for s in query)
-
-
 class APIClient:
     def __init__(self, base_url, headers: dict):
         self.base_url = base_url
@@ -32,7 +28,25 @@ class APIClient:
         return self._request("GET", endpoint, **kwargs)
 
 
-class KagiSearch(APIClient):
+class SearchClient(APIClient):
+    @staticmethod
+    def is_valid_query(query: str) -> bool:
+        return all(s.isdigit() for s in query) and len(query) > 0
+
+    def query(self, query: str, *args, **kwargs):
+        query = self._process_query(query)
+        return self._search(query, *args, **kwargs)
+
+    def _process_query(self, query: str) -> str:
+        if not self.is_valid_query(query):
+            raise InvalidInput(f"Invalid input: {query}")
+        return query
+
+    def _search(self, query: str, *args, **kwargs):
+        raise NotImplementedError
+
+
+class KagiSearch(SearchClient):
     def __init__(self, api_key: str, base_url: str = "https://kagi.com/api/v1"):
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -41,18 +55,13 @@ class KagiSearch(APIClient):
 
         super().__init__(base_url, headers)
 
-    def query(self, query: str, result_limit: int = 10) -> dict:
-        if not is_valid_query(query):
-            raise InvalidInput(f"Invalid input: {query}")
-
+    def _search(self, query: str, result_limit: int = 10) -> dict:
         params = {"query": query, "extract": {"count": result_limit}}
-
         results = self.post("/search", json=params)
-
         return results["data"]["search"]
 
 
-class WikiSearch(APIClient):
+class WikiSearch(SearchClient):
     def __init__(
         self,
         base_url: str = "https://en.wikipedia.org/w/rest.php/v1/search",
@@ -62,28 +71,19 @@ class WikiSearch(APIClient):
         }
         super().__init__(base_url, headers)
 
-    def query(self, query: str, result_limit: int = 10) -> dict:
-        if not is_valid_query(query):
-            raise InvalidInput(f"Invalid input: {query}")
-
+    def _search(self, query: str, result_limit: int = 10) -> dict:
         params = {"q": query, "limit": result_limit}
-
         results = self.get("/page", params=params)
-
         return results
 
 
-class OEISSearch(APIClient):
+class OEISSearch(SearchClient):
     def __init__(self, base_url: str = "https://oeis.org"):
         headers = {"User-Agent": "numbers-db/0.1"}
         super().__init__(base_url, headers)
 
-    def query(self, query: str) -> tuple[list[int], str] | None:
-        if not is_valid_query(query):
-            raise InvalidInput(f"Invalid input: {query}")
-
+    def _search(self, query: str) -> dict[str, str | list[int]] | None:
         params = {"q": query, "fmt": "json"}
-
         results = self.get("/search", params=params)
 
         if not results:
@@ -93,7 +93,7 @@ class OEISSearch(APIClient):
         sequence = [int(n) for n in top["data"].split(",")]
         link = f"https://oeis.org/A{top['number']:06d}"
 
-        return sequence, link
+        return {"query": query, "sequence": sequence, "link": link}
 
 
 class OpenRouter(APIClient):
