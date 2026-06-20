@@ -1,5 +1,6 @@
 import argparse
 import json
+import pprint
 import re
 
 import config
@@ -11,16 +12,18 @@ def select_index(raw, count):
     """Pull a result index out of the model's reply, defensively.
 
     Prefers a JSON object like {"index": N}; falls back to the first integer
-    found in the text. The result is clamped to a valid 0..count-1 index so a
+    found in the text. A non-string reply (e.g. the model returns null content)
+    defaults to 0. The result is clamped to a valid 0..count-1 index so a
     misbehaving model can never raise an IndexError downstream.
     """
     index = 0
-    try:
-        index = int(json.loads(raw)["index"])
-    except (ValueError, KeyError, TypeError):
-        match = re.search(r"\d+", raw)
-        if match:
-            index = int(match.group())
+    if isinstance(raw, str):
+        try:
+            index = int(json.loads(raw)["index"])
+        except (ValueError, KeyError, TypeError):
+            match = re.search(r"\d+", raw)
+            if match:
+                index = int(match.group())
 
     return max(0, min(index, count - 1))
 
@@ -45,13 +48,25 @@ def main():
 
     prompt = f"Provide a brief, concise description of the number {args.query} based on the provided data. Do not reference said data or speak about the data contents in your description. The description should be of the number as if it has a personality and a meaningful history -- if you must you can embellish but it cannot be overemphasized how important it is to not treat the description as a summary of historical data. {wiki_results}"
     response = llm.prompt(prompt)
-    num_description_msg = response["choices"][0]["message"]["content"]
+    # The model can return null content; fall back to an empty description.
+    num_description_msg = response["choices"][0]["message"]["content"] or ""
     # print(num_description_msg)
 
     kagi_results = kagi.query(args.query, 10)
+    # Send the model only what it needs to choose (title/url/short snippet), not
+    # each result's full page extraction, which can blow past the context window.
+    slim_results = [
+        {
+            "index": i,
+            "title": r.get("title", ""),
+            "url": r.get("url", ""),
+            "snippet": r.get("snippet", "")[:300],
+        }
+        for i, r in enumerate(kagi_results)
+    ]
     prompt = (
         f"Description of the number:\n{num_description_msg}\n\n"
-        f"Search results (a JSON array):\n{kagi_results}\n\n"
+        f"Search results (a JSON array):\n{slim_results}\n\n"
         "Return the zero-based index of the single result whose contents best "
         'match the description. Respond with ONLY a JSON object like {"index": 0}.'
     )
@@ -63,7 +78,7 @@ def main():
     )
     raw = response["choices"][0]["message"]["content"]
     num_best_result = kagi_results[select_index(raw, len(kagi_results))]
-    print(num_best_result)
+    pprint.pprint(num_best_result["url"])
 
     oeis_results = oeis.query(args.query)
     sequence = oeis_results["sequence"]

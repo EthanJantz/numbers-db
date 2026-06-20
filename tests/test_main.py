@@ -23,3 +23,7 @@ class TestSelectIndex:
     @pytest.mark.parametrize("raw", ["", "no number here", "nonsense"])
     def test_defaults_to_zero_when_unparseable(self, raw):
         assert select_index(raw, 5) == 0
+
+    def test_none_reply_defaults_to_zero(self):
+        # The model can return null content; select_index must not crash.
+        assert select_index(None, 5) == 0

@@ -82,7 +82,12 @@ class OEISSearch(SearchClient):
         headers = {"User-Agent": "numbers-db/0.1"}
         super().__init__(base_url, headers)
 
+    @staticmethod
+    def clean_query(query: str):
+        return query.lstrip("0") or "0"
+
     def _search(self, query: str) -> dict[str, str | list[int]] | None:
+        query = self.clean_query(query)
         params = {"q": query, "fmt": "json"}
         results = self.get("/search", params=params)
 
