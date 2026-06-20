@@ -266,4 +266,26 @@ class TestOpenRouter:
         assert sent["messages"] == [{"role": "user", "content": "hello"}]
         assert sent["temperature"] == 0.0
         assert sent["stream"] is False
+        assert "response_format" not in sent
         assert result == {"choices": []}
+
+    def test_prompt_prepends_system_message(self, monkeypatch):
+        client = OpenRouter("key")
+        request = patch_request(monkeypatch, client, {"choices": []})
+
+        client.prompt("hello", system="be terse")
+
+        sent = json.loads(request.call_args.kwargs["data"])
+        assert sent["messages"] == [
+            {"role": "system", "content": "be terse"},
+            {"role": "user", "content": "hello"},
+        ]
+
+    def test_prompt_passes_response_format(self, monkeypatch):
+        client = OpenRouter("key")
+        request = patch_request(monkeypatch, client, {"choices": []})
+
+        client.prompt("hello", response_format={"type": "json_object"})
+
+        sent = json.loads(request.call_args.kwargs["data"])
+        assert sent["response_format"] == {"type": "json_object"}

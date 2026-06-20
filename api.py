@@ -106,13 +106,25 @@ class OpenRouter(APIClient):
         }
         super().__init__(base_url, headers)
 
-    def query(self, msg: str) -> dict:
+    def prompt(
+        self,
+        msg: str,
+        system: str | None = None,
+        response_format: dict | None = None,
+    ) -> dict:
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": msg})
+
         message = {
             "model": "openai/gpt-oss-20b:free",
-            "messages": [{"role": "user", "content": msg}],
+            "messages": messages,
             "temperature": 0.0,
             "stream": False,
         }
+        if response_format:
+            message["response_format"] = response_format
 
         response = self.post("/completions", data=json.dumps(message))
 
