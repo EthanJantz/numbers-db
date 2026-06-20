@@ -122,7 +122,7 @@ class OpenRouter(APIClient):
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": msg})
 
-        message = {
+        message: dict[str, object] = {
             "model": "openai/gpt-oss-20b:free",
             "messages": messages,
             "temperature": 0.0,

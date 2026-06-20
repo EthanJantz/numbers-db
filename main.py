@@ -2,6 +2,7 @@ import argparse
 import json
 import pprint
 import re
+import webbrowser
 
 import config
 from api import KagiSearch, OEISSearch, OpenRouter, WikiSearch
@@ -48,13 +49,9 @@ def main():
 
     prompt = f"Provide a brief, concise description of the number {args.query} based on the provided data. Do not reference said data or speak about the data contents in your description. The description should be of the number as if it has a personality and a meaningful history -- if you must you can embellish but it cannot be overemphasized how important it is to not treat the description as a summary of historical data. {wiki_results}"
     response = llm.prompt(prompt)
-    # The model can return null content; fall back to an empty description.
     num_description_msg = response["choices"][0]["message"]["content"] or ""
-    # print(num_description_msg)
 
     kagi_results = kagi.query(args.query, 10)
-    # Send the model only what it needs to choose (title/url/short snippet), not
-    # each result's full page extraction, which can blow past the context window.
     slim_results = [
         {
             "index": i,
@@ -79,6 +76,7 @@ def main():
     raw = response["choices"][0]["message"]["content"]
     num_best_result = kagi_results[select_index(raw, len(kagi_results))]
     pprint.pprint(num_best_result["url"])
+    webbrowser.open(num_best_result["url"])
 
     oeis_results = oeis.query(args.query)
     sequence = oeis_results["sequence"]
