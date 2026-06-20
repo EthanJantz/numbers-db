@@ -84,10 +84,19 @@ def main():
     pprint.pprint(num_best_result["url"])
     webbrowser.open(num_best_result["url"])
 
-    with status.working("Emitting the song of {args.query}"):
+    with status.working(f"Emitting the song of {args.query}"):
         oeis_results = oeis.query(args.query)
+        if oeis_results is None:
+            print(f"{args.query} has no song to sing.")
+            return
+
         sequence = oeis_results["sequence"]
-        idx = sequence.index(int(args.query))
+        try:
+            idx = sequence.index(int(args.query))
+        except ValueError:
+            print(f"{args.query} is absent from its own sequence; no song to sing.")
+            return
+
         trunc_sequence = sequence[idx - 8 : idx] + sequence[idx : idx + 8]
         song = [x % 12 for x in trunc_sequence]
         play_sequence(song)
