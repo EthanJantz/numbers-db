@@ -73,6 +73,29 @@ class WikiSearch(APIClient):
         return results
 
 
+class OEISSearch(APIClient):
+    def __init__(self, base_url: str = "https://oeis.org"):
+        headers = {"User-Agent": "numbers-db/0.1"}
+        super().__init__(base_url, headers)
+
+    def query(self, query: str) -> tuple[list[int], str] | None:
+        if not is_valid_query(query):
+            raise InvalidInput(f"Invalid input: {query}")
+
+        params = {"q": query, "fmt": "json"}
+
+        results = self.get("/search", params=params)
+
+        if not results:
+            return None
+
+        top = results[0]
+        sequence = [int(n) for n in top["data"].split(",")]
+        link = f"https://oeis.org/A{top['number']:06d}"
+
+        return sequence, link
+
+
 class OpenRouter(APIClient):
     def __init__(
         self, api_key: str, base_url: str = "https://openrouter.ai/api/v1/chat"
@@ -83,19 +106,10 @@ class OpenRouter(APIClient):
         }
         super().__init__(base_url, headers)
 
-    def query(self, search_results: dict, query: str) -> dict:
+    def query(self, msg: str) -> dict:
         message = {
             "model": "openai/gpt-oss-20b:free",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": f"""Provide a brief, concise description of the number {query} based on the provided data.
-                    Do not reference said data or speak about the data contents in your description.
-                    The description should be of the number as if it has a personality and a meaningful history -- if you must you can embellish
-                    but it cannot be overemphasized how important it is to not treat the description as a summary of historical data.
-                    {search_results}""",
-                }
-            ],
+            "messages": [{"role": "user", "content": msg}],
             "temperature": 0.0,
             "stream": False,
         }
