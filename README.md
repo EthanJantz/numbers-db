@@ -15,7 +15,4 @@ uv sync
 ```
 # Ask about 8431
 uv run main.py 8431
-
-# Ask about 8431 using the power of the web
-uv run main.py 8431 -e=web
 ```
